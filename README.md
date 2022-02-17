@@ -51,37 +51,68 @@
    
      - 第三方库`github.com/panjf2000/ants`实现
 
+2. 并发从多个数据库读取，并返回收到的第一个响应
+
+```go
+func Query(conns []*Connection) int {
+	resultCh := make(chan int, 1)
+
+	for _, conn := range conns {
+		go func(c *Connection) {
+			select {
+			case resultCh <- c.DoQuery():
+			default:
+			}
+		}(conn)
+	}
+	return <-resultCh
+}
+```
+
 ## 设计模式
 1. 实现单例模式
 
     - 使用atomic和mutex实现的并发安全的单例
     
-    ```go
-    
-    type singleton struct{}
-    
-    var mu sync.Mutex
-    var done uint32
-    
-    var instance *singleton
-    
-    func New() *singleton {
-        // 添加if判断减少加锁开销，使用atomic做原子判断
-        if atomic.LoadUint32(&done) == 1 {
+        ```go
+        type singleton struct{}
+        
+        var mu sync.Mutex
+        var done uint32
+        
+        var instance *singleton
+        
+        func New() *singleton {
+            // 添加if判断减少加锁开销，使用atomic做原子判断
+            if atomic.LoadUint32(&done) == 1 {
+                return instance
+            }
+            mu.Lock()
+            defer mu.Unlock()
+            if done == 0 {
+                fmt.Printf("done : %d\n", done)
+                instance = &singleton{}
+                atomic.StoreUint32(&done, 1)
+            }
             return instance
         }
-        mu.Lock()
-        defer mu.Unlock()
-        if done == 0 {
-            fmt.Printf("done : %d\n", done)
-            instance = &singleton{}
-            atomic.StoreUint32(&done, 1)
-        }
-        return instance
-    }
-    ```
+        ```
    
    - 使用sync.Once实现的单例
+
+        ```go
+        type singleton struct{}
+        
+        var once sync.Once
+        var instance *singleton
+        
+        func New() *singleton {
+            once.Do(func() {
+                instance = &singleton{}
+            })
+            return instance
+        }
+        ```
 
 ## time
 1. 耗时统计
@@ -92,6 +123,45 @@
     fmt.Printf("耗时: %v", cost)
     ```
 
+2. time.Ticker使用
+
+3. 超时控制
+
+   - 使用time.After实现
+   
+     ```go
+     func GetIP(timeout time.Duration) (ip string, err error) {
+         ch := make(chan error, 1)
+    
+         go func() {
+             time.Sleep(timeout * 2)
+             ch <- nil
+         }()
+    
+         select {
+         case <-ch:
+             return "1.1.1.1", nil
+         case <-time.After(timeout):
+             return "", errors.New("timeout")
+         }
+     }
+    
+     func main() {
+         ip, err := GetIP(time.Second * 1)
+         if err != nil {
+             panic(err)
+         }
+         fmt.Printf("get ip : %v", ip)
+     }
+     ```
+
+## map
+
+1. map拷贝
+
+2. map并发安全
+
+3. sync.Map
 ## 调试与问题排查
 
 1. pprof
