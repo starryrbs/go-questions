@@ -49,7 +49,7 @@
       wg.Wait()
       ```
    
-     - 第三方库`github.com/panjf2000/ants`实现
+   - 第三方库`github.com/panjf2000/ants`实现
 
 2. 并发从多个数据库读取，并返回收到的第一个响应
 
