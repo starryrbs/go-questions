@@ -159,6 +159,8 @@ func Query(conns []*Connection) int {
 
 1. map拷贝
 
+   参考文章: https://zhuanlan.zhihu.com/p/387977898
+
    - 通过for循环进行拷贝
 
         ```go
@@ -207,9 +209,35 @@ func Query(conns []*Connection) int {
         }
         ```
 
-3. map并发安全
+2. map并发安全
 
-4. sync.Map
+    > 参考文章
+   
+    - https://cloud.tencent.com/developer/article/1539049
+
+    > 使用
+
+    - map不是并发安全的,并发读写会crash
+
+        ```go
+        package main
+        func main() {
+            m := make(map[int]int)
+            go func() {
+                for {
+                    _ = m[1]
+                }
+            }()
+            go func() {
+                for {
+                    m[2] = 2
+                }
+            }()
+            select {}
+        }
+       ```
+    - 使用并发安全的sync.Map
+
 ## 调试与问题排查
 
 1. pprof
