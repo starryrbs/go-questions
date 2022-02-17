@@ -159,9 +159,57 @@ func Query(conns []*Connection) int {
 
 1. map拷贝
 
-2. map并发安全
+   - 通过for循环进行拷贝
 
-3. sync.Map
+        ```go
+        a := make(map[string]int)
+        a["haha"] = 1
+        
+        newMap := make(map[string]int)
+        for k, v := range a {
+            newMap[k] = v
+        }
+        fmt.Printf("map: %v", newMap)
+       ```
+   - 考虑深拷贝的问题
+
+       ```go
+        a := make(map[string]*int)
+        num := 1
+        a["haha"] = &num
+        
+        newMap := make(map[string]*int)
+        for k, v := range a {
+            n := *v
+            newMap[k] = &n
+        }
+        println(&num)
+        num = 2
+        fmt.Printf("map: %v", newMap)
+       ```
+   - 使用gob编解码实现深拷贝（json.Marshal与json.UnMarshal类似）
+
+        ```go
+        func Map(m map[string]interface{}) (map[string]interface{}, error) {
+            var buf bytes.Buffer
+            enc := gob.NewEncoder(&buf)
+            dec := gob.NewDecoder(&buf)
+            err := enc.Encode(m)
+            if err != nil {
+                return nil, err
+            }
+            var mapCopy map[string]interface{}
+            err = dec.Decode(&mapCopy)
+            if err != nil {
+                return nil, err
+            }
+            return mapCopy, nil
+        }
+        ```
+
+3. map并发安全
+
+4. sync.Map
 ## 调试与问题排查
 
 1. pprof
